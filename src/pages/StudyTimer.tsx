@@ -103,12 +103,16 @@ export default function StudyTimer() {
     : Math.min((elapsed / totalSeconds) * 100, 100);
 
   return (
-    <div className="min-h-screen bg-background p-4 max-w-lg mx-auto">
+    <div className="min-h-screen bg-background p-4 max-w-lg mx-auto flex flex-col">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button onClick={() => navigate("/")} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
-          <ArrowLeft className="w-5 h-5" />
-        </button>
+        {phase === "setup" || phase === "done" ? (
+          <button onClick={() => navigate("/")} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+        ) : (
+          <div className="w-10 h-10" />
+        )}
         <h1 className="text-xl font-heading font-bold">Study Session</h1>
       </div>
 
@@ -120,7 +124,7 @@ export default function StudyTimer() {
             key="done"
             initial={{ scale: 0.8, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-center py-12"
+            className="text-center py-12 flex-1 flex flex-col justify-center pb-20"
           >
             <motion.div
               initial={{ scale: 0 }}
@@ -143,11 +147,11 @@ export default function StudyTimer() {
             </div>
           </motion.div>
         ) : (
-          <motion.div key="timer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
+          <motion.div key="timer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center flex-1 flex flex-col justify-center pb-20">
             {/* Duration Target (setup only) */}
             {phase === "setup" && (
               <div className="flex flex-col mb-8 justify-center gap-2">
-                <p className="text-sm text-muted-foreground mb-1">Target Duration (Optional)</p>
+                {/* <p className="text-sm text-muted-foreground mb-1">Target Duration (Optional)</p> */}
                 <div className="flex gap-2 justify-center flex-wrap">
                   {DURATIONS.map((d) => (
                     <button

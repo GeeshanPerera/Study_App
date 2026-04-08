@@ -14,19 +14,12 @@ export default function Home() {
   const { stats } = useAppStore();
 
   return (
-    <div className="min-h-screen bg-background p-4 pb-24 max-w-lg mx-auto">
+    <div className="min-h-screen bg-background p-4 max-w-lg mx-auto">
       <motion.div initial="hidden" animate="visible" className="space-y-4">
         {/* Header */}
         <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between pt-2">
           <div>
-            <h1 className="text-2xl font-heading font-bold text-foreground">StudyDesk</h1>
-            <p className="text-sm text-muted-foreground">Smart Study Assistant</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="bento-item !p-2 flex items-center gap-1.5">
-              <Flame className="w-4 h-4 text-warning" />
-              <span className="text-sm font-semibold">{stats.streak}</span>
-            </div>
+            <h1 className="text-2xl font-heading font-bold text-foreground">Focus Assistance</h1>
           </div>
         </motion.div>
 
@@ -52,26 +45,6 @@ export default function Home() {
 
       </motion.div>
 
-      {/* Bottom Nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-card/90 backdrop-blur-lg border-t border-border p-2">
-        <div className="max-w-lg mx-auto flex justify-around">
-          {[
-            { icon: Play, label: "Home", path: "/" },
-            { icon: Calendar, label: "Schedule", path: "/schedule" },
-          ].map(({ icon: Icon, label, path }) => (
-            <button
-              key={path}
-              onClick={() => navigate(path)}
-              className={`flex flex-col items-center gap-0.5 px-4 py-1.5 rounded-xl transition-colors ${
-                path === "/" ? "text-primary" : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{label}</span>
-            </button>
-          ))}
-        </div>
-      </nav>
     </div>
   );
 }

@@ -61,8 +61,7 @@ export default function Schedule() {
   };
 
   const handleSave = () => {
-    if (!form.title.trim()) return;
-    const taskData = { ...form, type: activeTab };
+    const taskData = { ...form, title: form.category, type: activeTab };
     const conflicting = detectOverlap(tasks, taskData, editingId || undefined);
     if (conflicting) {
       setOverlap(conflicting);
@@ -133,7 +132,7 @@ export default function Schedule() {
               >
                 <div className="text-lg">{categoryIcon(task.category)}</div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm truncate">{task.title}</p>
+                  <p className="font-medium text-sm truncate capitalize">{task.category}</p>
                   <p className="text-xs text-muted-foreground">
                     {task.startTime} – {task.endTime}
                     {task.type === "weekly" && task.dayOfWeek !== undefined && ` · ${DAYS[task.dayOfWeek]}`}
@@ -182,22 +181,12 @@ export default function Schedule() {
                   <AlertTriangle className="w-4 h-4 text-warning mt-0.5" />
                   <div>
                     <p className="text-sm font-medium text-warning">Overlap detected</p>
-                    <p className="text-xs text-muted-foreground">Conflicts with "{overlap.title}" ({overlap.startTime}–{overlap.endTime})</p>
+                    <p className="text-xs text-muted-foreground">Conflicts with {overlap.category} ({overlap.startTime}–{overlap.endTime})</p>
                   </div>
                 </div>
               )}
 
               <div className="space-y-4">
-                <div>
-                  <label className="text-xs text-muted-foreground mb-1 block">Title</label>
-                  <input
-                    value={form.title}
-                    onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-                    placeholder="e.g. Study Math"
-                    className="w-full px-3 py-2.5 rounded-xl bg-muted border-0 text-sm focus:ring-2 focus:ring-primary outline-none"
-                  />
-                </div>
-
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Start</label>
