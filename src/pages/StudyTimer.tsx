@@ -46,24 +46,32 @@ export default function StudyTimer() {
 
   const stopTimer = () => {
     clearTimer();
-    const duration = Math.round(elapsed / 60);
-    const focusScore = Math.min(100, Math.round((elapsed / totalSeconds) * 100));
-    addSession({
-      id: Date.now().toString(),
-      startTime: startTimeRef.current,
-      endTime: new Date().toISOString(),
-      duration,
-      mode,
-      focusScore,
-      completed: elapsed >= totalSeconds,
-    });
-    addBehaviorLog({
-      timestamp: new Date().toISOString(),
-      presence: true,
-      movementLevel: focusScore > 70 ? "high" : focusScore > 40 ? "medium" : "low",
-      focusScore,
-    });
-    setPhase("done");
+    try {
+      const safeTotal = totalSeconds > 0 ? totalSeconds : PRESETS.deepwork.work;
+      const duration = Math.max(0, Math.round(elapsed / 60));
+      const focusScore = Math.min(100, Math.max(0, Math.round((elapsed / safeTotal) * 100)));
+
+      addSession({
+        id: Date.now().toString(),
+        startTime: startTimeRef.current || new Date().toISOString(),
+        endTime: new Date().toISOString(),
+        duration,
+        mode,
+        focusScore,
+        completed: elapsed >= safeTotal,
+      });
+      addBehaviorLog({
+        timestamp: new Date().toISOString(),
+        presence: true,
+        movementLevel: focusScore > 70 ? "high" : focusScore > 40 ? "medium" : "low",
+        focusScore,
+      });
+    } catch (error) {
+      console.error("Stop session failed:", error);
+      toast.error("Session stopped, but saving failed.");
+    } finally {
+      navigate("/");
+    }
   };
 
   const startBreak = () => {
