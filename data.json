@@ -1,1 +1,17 @@
-{"tasks": [], "behavior_logs": []}
+{
+    "tasks": [
+        {
+            "title": "study",
+            "startTime": "09:00",
+            "endTime": "10:00",
+            "date": "2026-04-08",
+            "dayOfWeek": 1,
+            "priority": "medium",
+            "category": "study",
+            "repeat": "none",
+            "type": "custom",
+            "id": "1775653229734"
+        }
+    ],
+    "behavior_logs": []
+}

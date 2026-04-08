@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Plus, Trash2, Edit2, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useAppStore, type Task, type TaskPriority, type TaskCategory, type TaskRepeat } from "@/lib/store";
+import { type Task, type TaskPriority, type TaskCategory, type TaskRepeat } from "@/lib/store";
+import { toast } from "sonner";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -44,7 +45,7 @@ function detectOverlap(tasks: Task[], newTask: Partial<Task>, excludeId?: string
 
 export default function Schedule() {
   const navigate = useNavigate();
-  const { tasks, addTask, deleteTask, updateTask } = useAppStore();
+  const [tasks, setTasks] = useState<Task[]>([]);
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("custom");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -63,6 +64,20 @@ export default function Schedule() {
   const endParts = parseTime(form.endTime);
   const dateParts = parseDate(form.date);
   const dateDayOptions = Array.from({ length: daysInMonth(dateParts.year, dateParts.month) }, (_, i) => i + 1);
+  const loadTasks = async () => {
+    try {
+      const res = await fetch("/api/tasks");
+      const payload = await res.json();
+      const list = Array.isArray(payload?.tasks) ? payload.tasks : [];
+      setTasks(list);
+    } catch {
+      toast.error("Failed to load tasks from data.json");
+    }
+  };
+
+  useEffect(() => {
+    loadTasks();
+  }, []);
 
   const filteredTasks = tasks.filter((t) => t.type === activeTab);
 
@@ -94,12 +109,32 @@ export default function Schedule() {
       setOverlap(conflicting);
       return;
     }
-    if (editingId) {
-      updateTask(editingId, taskData);
-    } else {
-      addTask({ ...taskData, id: Date.now().toString() } as Task);
-    }
-    setShowForm(false);
+    const run = async () => {
+      try {
+        if (editingId) {
+          const res = await fetch(`/api/tasks/${editingId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(taskData),
+          });
+          if (!res.ok) throw new Error("Update failed");
+          setTasks((prev) => prev.map((t) => (t.id === editingId ? ({ ...t, ...taskData } as Task) : t)));
+        } else {
+          const newTask = { ...taskData, id: Date.now().toString() } as Task;
+          const res = await fetch("/api/tasks", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newTask),
+          });
+          if (!res.ok) throw new Error("Create failed");
+          setTasks((prev) => [...prev, newTask]);
+        }
+        setShowForm(false);
+      } catch {
+        toast.error("Task save failed");
+      }
+    };
+    void run();
   };
 
   const priorityColor = (p: TaskPriority) =>
@@ -169,7 +204,21 @@ export default function Schedule() {
                 <button onClick={() => openForm(task)} className="p-1.5 rounded-lg hover:bg-muted">
                   <Edit2 className="w-3.5 h-3.5 text-muted-foreground" />
                 </button>
-                <button onClick={() => deleteTask(task.id)} className="p-1.5 rounded-lg hover:bg-destructive/10">
+                <button
+                  onClick={() => {
+                    const run = async () => {
+                      try {
+                        const res = await fetch(`/api/tasks/${task.id}`, { method: "DELETE" });
+                        if (!res.ok) throw new Error("Delete failed");
+                        setTasks((prev) => prev.filter((t) => t.id !== task.id));
+                      } catch {
+                        toast.error("Task delete failed");
+                      }
+                    };
+                    void run();
+                  }}
+                  className="p-1.5 rounded-lg hover:bg-destructive/10"
+                >
                   <Trash2 className="w-3.5 h-3.5 text-destructive" />
                 </button>
               </motion.div>
