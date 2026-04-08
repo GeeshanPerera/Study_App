@@ -5,7 +5,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Home from "./pages/Home";
 import StudyTimer from "./pages/StudyTimer";
 import Schedule from "./pages/Schedule";
-import Analytics from "./pages/Analytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -19,7 +18,6 @@ const App = () => (
           <Route path="/" element={<Home />} />
           <Route path="/study" element={<StudyTimer />} />
           <Route path="/schedule" element={<Schedule />} />
-          <Route path="/analytics" element={<Analytics />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

@@ -8,9 +8,7 @@ import { useAppStore, type StudyMode } from "@/lib/store";
 import { toast } from "sonner";
 
 const PRESETS: Record<string, { work: number; break: number; label: string }> = {
-  pomodoro: { work: 25 * 60, break: 5 * 60, label: "Pomodoro" },
-  deepwork: { work: 90 * 60, break: 15 * 60, label: "Deep Work" },
-  custom: { work: 45 * 60, break: 10 * 60, label: "Custom" },
+  deepwork: { work: 90 * 60, break: 5 * 60, label: "Deep Work" },
 };
 
 const DURATIONS = [
@@ -23,11 +21,11 @@ const DURATIONS = [
 export default function StudyTimer() {
   const navigate = useNavigate();
   const { addSession, addBehaviorLog } = useAppStore();
-  const [mode, setMode] = useState<StudyMode>("pomodoro");
-  const [phase, setPhase] = useState<"setup" | "running" | "paused" | "break" | "done">("setup");
-  const [totalSeconds, setTotalSeconds] = useState(PRESETS.pomodoro.work);
-  const [remaining, setRemaining] = useState(PRESETS.pomodoro.work);
-  const [pomodoroCount, setPomodoroCount] = useState(0);
+  const [mode, setMode] = useState<StudyMode>("deepwork");
+  const [phase, setPhase] = useState<"setup" | "running" | "break" | "done">("setup");
+  const [totalSeconds, setTotalSeconds] = useState(PRESETS.deepwork.work);
+  const [elapsed, setElapsed] = useState(0);
+  const [breakRemaining, setBreakRemaining] = useState(5 * 60);
   const intervalRef = useRef<number | null>(null);
   const startTimeRef = useRef<string>("");
 
@@ -42,34 +40,14 @@ export default function StudyTimer() {
     if (phase === "setup") startTimeRef.current = new Date().toISOString();
     setPhase("running");
     intervalRef.current = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          clearTimer();
-          if (mode === "pomodoro") {
-            setPomodoroCount((c) => c + 1);
-            setPhase("break");
-            setRemaining(PRESETS.pomodoro.break);
-            toast.success("Pomodoro complete! Take a break 🎉");
-            return PRESETS.pomodoro.break;
-          }
-          setPhase("done");
-          toast.success("Session Completed! 🎉");
-          return 0;
-        }
-        return prev - 1;
-      });
+      setElapsed((prev) => prev + 1);
     }, 1000);
-  }, [clearTimer, mode, phase]);
-
-  const pauseTimer = () => {
-    clearTimer();
-    setPhase("paused");
-  };
+  }, [clearTimer, phase]);
 
   const stopTimer = () => {
     clearTimer();
-    const duration = Math.round((totalSeconds - remaining) / 60);
-    const focusScore = Math.min(100, Math.round((1 - remaining / totalSeconds) * 100));
+    const duration = Math.round(elapsed / 60);
+    const focusScore = Math.min(100, Math.round((elapsed / totalSeconds) * 100));
     addSession({
       id: Date.now().toString(),
       startTime: startTimeRef.current,
@@ -77,7 +55,7 @@ export default function StudyTimer() {
       duration,
       mode,
       focusScore,
-      completed: remaining === 0,
+      completed: elapsed >= totalSeconds,
     });
     addBehaviorLog({
       timestamp: new Date().toISOString(),
@@ -89,16 +67,15 @@ export default function StudyTimer() {
   };
 
   const startBreak = () => {
-    setPhase("running");
+    clearTimer();
+    setPhase("break");
+    setBreakRemaining(5 * 60);
     intervalRef.current = window.setInterval(() => {
-      setRemaining((prev) => {
+      setBreakRemaining((prev) => {
         if (prev <= 1) {
           clearTimer();
-          setRemaining(PRESETS.pomodoro.work);
-          setTotalSeconds(PRESETS.pomodoro.work);
-          setPhase("setup");
-          toast("Break over! Ready for another round?");
-          return PRESETS.pomodoro.work;
+          toast.warning("Break countdown ended! Please start the session again.", { duration: 10000 });
+          return 0;
         }
         return prev - 1;
       });
@@ -107,13 +84,12 @@ export default function StudyTimer() {
 
   const resetTimer = () => {
     clearTimer();
-    setRemaining(totalSeconds);
+    setElapsed(0);
     setPhase("setup");
   };
 
   const selectDuration = (seconds: number) => {
     setTotalSeconds(seconds);
-    setRemaining(seconds);
   };
 
   const formatTime = (s: number) => {
@@ -123,8 +99,8 @@ export default function StudyTimer() {
   };
 
   const progress = phase === "break"
-    ? ((PRESETS.pomodoro.break - remaining) / PRESETS.pomodoro.break) * 100
-    : ((totalSeconds - remaining) / totalSeconds) * 100;
+    ? ((5 * 60 - breakRemaining) / (5 * 60)) * 100
+    : Math.min((elapsed / totalSeconds) * 100, 100);
 
   return (
     <div className="min-h-screen bg-background p-4 max-w-lg mx-auto">
@@ -136,26 +112,7 @@ export default function StudyTimer() {
         <h1 className="text-xl font-heading font-bold">Study Session</h1>
       </div>
 
-      {/* Mode Selector */}
-      <div className="flex gap-2 mb-6">
-        {(Object.entries(PRESETS) as [StudyMode, typeof PRESETS.pomodoro][]).map(([key, val]) => (
-          <button
-            key={key}
-            onClick={() => {
-              setMode(key);
-              if (phase === "setup") {
-                setTotalSeconds(val.work);
-                setRemaining(val.work);
-              }
-            }}
-            className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-all ${
-              mode === key ? "gradient-primary text-primary-foreground shadow-md" : "bg-muted text-muted-foreground"
-            }`}
-          >
-            {val.label}
-          </button>
-        ))}
-      </div>
+
 
       <AnimatePresence mode="wait">
         {phase === "done" ? (
@@ -174,9 +131,7 @@ export default function StudyTimer() {
               <Flame className="w-12 h-12 text-success-foreground" />
             </motion.div>
             <h2 className="text-2xl font-heading font-bold mb-2">Session Complete!</h2>
-            <p className="text-muted-foreground mb-2">
-              {mode === "pomodoro" && `${pomodoroCount} pomodoro${pomodoroCount > 1 ? "s" : ""} completed`}
-            </p>
+
             <p className="text-muted-foreground mb-8">Great focus session. Keep it up!</p>
             <div className="flex gap-3 justify-center">
               <Button onClick={resetTimer} variant="outline" className="rounded-xl">
@@ -189,20 +144,22 @@ export default function StudyTimer() {
           </motion.div>
         ) : (
           <motion.div key="timer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center">
-            {/* Duration Presets (setup only) */}
-            {phase === "setup" && mode !== "pomodoro" && (
-              <div className="flex gap-2 mb-8 justify-center flex-wrap">
-                {DURATIONS.map((d) => (
-                  <button
-                    key={d.seconds}
-                    onClick={() => selectDuration(d.seconds)}
-                    className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                      totalSeconds === d.seconds ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                    }`}
-                  >
-                    {d.label}
-                  </button>
-                ))}
+            {/* Duration Target (setup only) */}
+            {phase === "setup" && (
+              <div className="flex flex-col mb-8 justify-center gap-2">
+                <p className="text-sm text-muted-foreground mb-1">Target Duration (Optional)</p>
+                <div className="flex gap-2 justify-center flex-wrap">
+                  {DURATIONS.map((d) => (
+                    <button
+                      key={d.seconds}
+                      onClick={() => selectDuration(d.seconds)}
+                      className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${totalSeconds === d.seconds ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                        }`}
+                    >
+                      {d.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -216,10 +173,17 @@ export default function StudyTimer() {
                       <span className="text-xs text-success font-medium">Break</span>
                     </div>
                   )}
-                  <span className="text-5xl font-heading font-bold text-foreground">{formatTime(remaining)}</span>
+                  <span className="text-5xl font-heading font-bold text-foreground">
+                    {formatTime(phase === "break" ? breakRemaining : elapsed)}
+                  </span>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {phase === "running" ? "Focusing..." : phase === "paused" ? "Paused" : phase === "break" ? "Rest up" : "Ready"}
+                    {phase === "running" ? "Focusing..." : phase === "break" ? "Rest up" : "Ready"}
                   </p>
+                  {phase === "break" && (
+                    <div className="mt-2 text-xs font-medium text-primary">
+                      Study Time: {formatTime(elapsed)}
+                    </div>
+                  )}
                 </div>
               </CircularProgress>
             </div>
@@ -228,41 +192,30 @@ export default function StudyTimer() {
             <div className="flex gap-3 justify-center">
               {phase === "setup" && (
                 <Button onClick={startTimer} size="lg" className="rounded-2xl px-10 gradient-primary text-primary-foreground shadow-lg text-lg">
-                  <Play className="w-5 h-5 mr-2" /> Start
+                  <Play className="w-5 h-5 mr-2" /> Start Study
                 </Button>
               )}
               {phase === "running" && (
                 <>
-                  <Button onClick={pauseTimer} size="lg" variant="outline" className="rounded-2xl px-6">
-                    <Pause className="w-5 h-5 mr-2" /> Pause
+                  <Button onClick={startBreak} size="lg" variant="outline" className="rounded-2xl px-6 border-success text-success hover:bg-success/10">
+                    <Coffee className="w-5 h-5 mr-2" /> Start Break
                   </Button>
                   <Button onClick={stopTimer} size="lg" variant="destructive" className="rounded-2xl px-6">
-                    <Square className="w-5 h-5 mr-2" /> Stop
-                  </Button>
-                </>
-              )}
-              {phase === "paused" && (
-                <>
-                  <Button onClick={startTimer} size="lg" className="rounded-2xl px-6 gradient-primary text-primary-foreground">
-                    <Play className="w-5 h-5 mr-2" /> Resume
-                  </Button>
-                  <Button onClick={stopTimer} size="lg" variant="destructive" className="rounded-2xl px-6">
-                    <Square className="w-5 h-5 mr-2" /> Stop
+                    <Square className="w-5 h-5 mr-2" /> Stop Session
                   </Button>
                 </>
               )}
               {phase === "break" && (
-                <Button onClick={startBreak} size="lg" className="rounded-2xl px-10 gradient-success text-success-foreground">
-                  <Coffee className="w-5 h-5 mr-2" /> Start Break
-                </Button>
+                <>
+                  <Button onClick={startTimer} size="lg" className="rounded-2xl px-8 gradient-primary text-primary-foreground shadow-lg text-lg">
+                    <Play className="w-5 h-5 mr-2" /> Start Session
+                  </Button>
+                  <Button onClick={stopTimer} size="lg" variant="destructive" className="rounded-2xl px-6">
+                    <Square className="w-5 h-5 mr-2" /> Stop Session
+                  </Button>
+                </>
               )}
             </div>
-
-            {mode === "pomodoro" && pomodoroCount > 0 && (
-              <p className="mt-4 text-sm text-muted-foreground">
-                🍅 {pomodoroCount} pomodoro{pomodoroCount > 1 ? "s" : ""} done
-              </p>
-            )}
           </motion.div>
         )}
       </AnimatePresence>

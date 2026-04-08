@@ -8,7 +8,7 @@ import { useAppStore, type Task, type TaskPriority, type TaskCategory, type Task
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 const CATEGORIES: TaskCategory[] = ["study", "work", "personal"];
 const PRIORITIES: TaskPriority[] = ["high", "medium", "low"];
-const TABS = ["daily", "weekly", "everyday", "custom"] as const;
+const TABS = ["custom", "weekly", "everyday"] as const;
 
 function detectOverlap(tasks: Task[], newTask: Partial<Task>, excludeId?: string): Task | undefined {
   return tasks.find(
@@ -22,7 +22,7 @@ function detectOverlap(tasks: Task[], newTask: Partial<Task>, excludeId?: string
 export default function Schedule() {
   const navigate = useNavigate();
   const { tasks, addTask, deleteTask, updateTask } = useAppStore();
-  const [activeTab, setActiveTab] = useState<typeof TABS[number]>("daily");
+  const [activeTab, setActiveTab] = useState<typeof TABS[number]>("custom");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
@@ -78,8 +78,8 @@ export default function Schedule() {
 
   const priorityColor = (p: TaskPriority) =>
     p === "high" ? "bg-destructive/10 text-destructive" :
-    p === "medium" ? "bg-warning/10 text-warning" :
-    "bg-muted text-muted-foreground";
+      p === "medium" ? "bg-warning/10 text-warning" :
+        "bg-muted text-muted-foreground";
 
   const categoryIcon = (c: TaskCategory) =>
     c === "study" ? "📚" : c === "work" ? "💼" : "🏠";
@@ -105,9 +105,8 @@ export default function Schedule() {
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 py-2 text-xs font-medium rounded-lg capitalize transition-all ${
-              activeTab === tab ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
-            }`}
+            className={`flex-1 py-2 text-xs font-medium rounded-lg capitalize transition-all ${activeTab === tab ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
+              }`}
           >
             {tab}
           </button>
@@ -220,7 +219,7 @@ export default function Schedule() {
                   </div>
                 </div>
 
-                {activeTab === "daily" && (
+                {activeTab === "custom" && (
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Date</label>
                     <input
@@ -240,9 +239,8 @@ export default function Schedule() {
                         <button
                           key={d}
                           onClick={() => setForm((f) => ({ ...f, dayOfWeek: i }))}
-                          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
-                            form.dayOfWeek === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                          }`}
+                          className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${form.dayOfWeek === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                            }`}
                         >
                           {d}
                         </button>
@@ -258,9 +256,8 @@ export default function Schedule() {
                       <button
                         key={p}
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
-                        className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${
-                          form.priority === p ? priorityColor(p) + " ring-2 ring-offset-1 ring-current" : "bg-muted text-muted-foreground"
-                        }`}
+                        className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${form.priority === p ? priorityColor(p) + " ring-2 ring-offset-1 ring-current" : "bg-muted text-muted-foreground"
+                          }`}
                       >
                         {p}
                       </button>
@@ -275,9 +272,8 @@ export default function Schedule() {
                       <button
                         key={c}
                         onClick={() => setForm((f) => ({ ...f, category: c }))}
-                        className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${
-                          form.category === c ? "bg-primary/10 text-primary ring-2 ring-primary/30" : "bg-muted text-muted-foreground"
-                        }`}
+                        className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${form.category === c ? "bg-primary/10 text-primary ring-2 ring-primary/30" : "bg-muted text-muted-foreground"
+                          }`}
                       >
                         {categoryIcon(c)} {c}
                       </button>
