@@ -103,9 +103,9 @@ export default function StudyTimer() {
     : Math.min((elapsed / totalSeconds) * 100, 100);
 
   return (
-    <div className="h-[100dvh] overflow-hidden bg-background p-4 max-w-lg mx-auto flex flex-col">
+    <div className="h-[100dvh] overflow-hidden bg-background p-3 max-w-lg mx-auto flex flex-col">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
+      <div className="flex items-center gap-2.5 mb-3">
         {phase === "setup" || phase === "done" ? (
           <button onClick={() => navigate("/")} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
             <ArrowLeft className="w-5 h-5" />
@@ -136,7 +136,7 @@ export default function StudyTimer() {
             </motion.div>
             <h2 className="text-2xl font-heading font-bold mb-2">Session Complete!</h2>
 
-            <p className="text-muted-foreground mb-6">Great focus session. Keep it up!</p>
+            <p className="text-muted-foreground mb-4">Great focus session. Keep it up!</p>
             <div className="flex gap-3 justify-center flex-wrap">
               <Button onClick={resetTimer} variant="outline" className="rounded-xl">
                 <RotateCcw className="w-4 h-4 mr-2" /> Again
@@ -150,7 +150,7 @@ export default function StudyTimer() {
           <motion.div key="timer" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center flex-1 min-h-0 flex flex-col py-2">
             {/* Duration Target (setup only) */}
             {phase === "setup" && (
-              <div className="flex flex-col mb-4 justify-center gap-2">
+              <div className="flex flex-col mb-3 justify-center gap-2">
                 {/* <p className="text-sm text-muted-foreground mb-1">Target Duration (Optional)</p> */}
                 <div className="flex gap-2 justify-center flex-wrap">
                   {DURATIONS.map((d) => (
@@ -168,7 +168,7 @@ export default function StudyTimer() {
             )}
 
             {/* Timer Display */}
-            <div className="flex-1 min-h-0 flex items-center justify-center mb-3">
+            <div className="flex-1 min-h-0 flex items-center justify-center mb-2">
               <CircularProgress progress={progress} size={210} strokeWidth={10}>
                 <div>
                   {phase === "break" && (

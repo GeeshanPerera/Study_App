@@ -9,4 +9,6 @@ import "@fontsource/figtree/600.css";
 import App from "./App.tsx";
 import "./index.css";
 
+document.documentElement.classList.add("dark");
+
 createRoot(document.getElementById("root")!).render(<App />);

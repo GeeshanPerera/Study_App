@@ -111,9 +111,9 @@ export default function Schedule() {
     c === "study" ? "📚" : c === "work" ? "💼" : "🏠";
 
   return (
-    <div className="min-h-screen bg-background p-4 max-w-lg mx-auto pb-6">
+    <div className="min-h-screen bg-background p-3 max-w-lg mx-auto pb-4">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <button onClick={() => navigate("/")} className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center">
             <ArrowLeft className="w-5 h-5" />
@@ -126,7 +126,7 @@ export default function Schedule() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1.5 mb-4 bg-muted rounded-xl p-1">
+      <div className="flex gap-1.5 mb-3 bg-muted rounded-xl p-1">
         {TABS.map((tab) => (
           <button
             key={tab}
@@ -143,7 +143,7 @@ export default function Schedule() {
       <div className="space-y-2">
         <AnimatePresence>
           {filteredTasks.length === 0 ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-12 text-muted-foreground">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center py-8 text-muted-foreground">
               <p>No {activeTab} tasks yet</p>
               <p className="text-sm mt-1">Tap + to add one</p>
             </motion.div>
@@ -193,7 +193,7 @@ export default function Schedule() {
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25 }}
-              className="bg-card w-full max-w-lg rounded-t-3xl p-5 max-h-[85vh] overflow-y-auto"
+              className="bg-card w-full max-w-lg rounded-t-3xl p-4 max-h-[85vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center justify-between mb-4">

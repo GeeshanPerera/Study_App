@@ -17,14 +17,14 @@ export default function Home() {
     <div className="h-screen bg-background w-full">
       <motion.div initial="hidden" animate="visible" className="h-full flex flex-col">
         {/* Header */}
-        <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between p-4">
+        <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between p-3">
           <div>
             <h1 className="text-2xl font-heading font-bold text-foreground">Focus Assistance</h1>
           </div>
         </motion.div>
 
         {/* Main Actions */}
-        <motion.div custom={1} variants={fadeUp} className="grid grid-cols-2 gap-4 flex-1 min-h-0 p-4 pt-0">
+        <motion.div custom={1} variants={fadeUp} className="grid grid-cols-2 gap-3 flex-1 min-h-0 p-3 pt-0">
           <Button
             onClick={() => navigate("/study")}
             className="h-full w-full rounded-2xl gradient-primary text-primary-foreground flex flex-col items-center justify-center gap-3 text-2xl font-heading font-semibold transition-all"
