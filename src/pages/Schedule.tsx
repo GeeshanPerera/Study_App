@@ -49,6 +49,9 @@ export default function Schedule() {
   const [activeTab, setActiveTab] = useState<typeof TABS[number]>("custom");
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [activeField, setActiveField] = useState<"startHour" | "startMinute" | "endHour" | "endMinute" | "day" | "month" | "year" | null>(null);
+  const [keyboardEnabled, setKeyboardEnabled] = useState(true);
+  const [freshInput, setFreshInput] = useState(false);
   const [form, setForm] = useState({
     title: "",
     startTime: "09:00",
@@ -100,10 +103,80 @@ export default function Schedule() {
     }
     setShowForm(true);
     setOverlap(null);
+    setActiveField(null);
+    setFreshInput(false);
+  };
+
+  const activateField = (field: "startHour" | "startMinute" | "endHour" | "endMinute" | "day" | "month" | "year") => {
+    if (!keyboardEnabled) return;
+    setActiveField(field);
+    setFreshInput(true);
+  };
+
+  const getFieldValue = (field: "startHour" | "startMinute" | "endHour" | "endMinute" | "day" | "month" | "year") => {
+    if (field === "startHour") return startParts.hour;
+    if (field === "startMinute") return startParts.minute;
+    if (field === "endHour") return endParts.hour;
+    if (field === "endMinute") return endParts.minute;
+    if (field === "day") return dateParts.day.toString().padStart(2, "0");
+    if (field === "month") return dateParts.month.toString().padStart(2, "0");
+    return dateParts.year.toString();
+  };
+
+  const setFieldValue = (field: "startHour" | "startMinute" | "endHour" | "endMinute" | "day" | "month" | "year", value: string) => {
+    if (field === "startHour") {
+      setForm((f) => ({ ...f, startTime: `${value}:${startParts.minute}` }));
+      return;
+    }
+    if (field === "startMinute") {
+      setForm((f) => ({ ...f, startTime: `${startParts.hour}:${value}` }));
+      return;
+    }
+    if (field === "endHour") {
+      setForm((f) => ({ ...f, endTime: `${value}:${endParts.minute}` }));
+      return;
+    }
+    if (field === "endMinute") {
+      setForm((f) => ({ ...f, endTime: `${endParts.hour}:${value}` }));
+      return;
+    }
+    if (field === "day") {
+      setForm((f) => ({ ...f, date: `${dateParts.year.toString().padStart(4, "0")}-${dateParts.month.toString().padStart(2, "0")}-${value}` }));
+      return;
+    }
+    if (field === "month") {
+      setForm((f) => ({ ...f, date: `${dateParts.year.toString().padStart(4, "0")}-${value}-${dateParts.day.toString().padStart(2, "0")}` }));
+      return;
+    }
+    setForm((f) => ({ ...f, date: `${value}-${dateParts.month.toString().padStart(2, "0")}-${dateParts.day.toString().padStart(2, "0")}` }));
+  };
+
+  const pressDigit = (digit: string) => {
+    if (!activeField || !keyboardEnabled) return;
+    const maxLength = activeField === "year" ? 4 : 2;
+    const current = getFieldValue(activeField);
+    const next = freshInput ? digit : (current + digit).slice(-maxLength);
+    const padded = activeField === "year" ? next : next.padStart(2, "0");
+    setFieldValue(activeField, padded);
+    setFreshInput(false);
+  };
+
+  const pressBackspace = () => {
+    if (!activeField || !keyboardEnabled) return;
+    const current = getFieldValue(activeField);
+    const trimmed = current.slice(0, -1);
+    const normalized = activeField === "year" ? (trimmed || "0") : (trimmed || "00").padStart(2, "0");
+    setFieldValue(activeField, normalized);
+    setFreshInput(false);
   };
 
   const handleSave = () => {
-    const taskData = { ...form, title: form.category, type: activeTab };
+    const safeStart = `${startParts.hour.padStart(2, "0")}:${startParts.minute.padStart(2, "0")}`;
+    const safeEnd = `${endParts.hour.padStart(2, "0")}:${endParts.minute.padStart(2, "0")}`;
+    const safeYear = dateParts.year.toString().padStart(4, "0");
+    const safeMonth = Math.min(12, Math.max(1, dateParts.month)).toString().padStart(2, "0");
+    const safeDay = Math.min(daysInMonth(Number(safeYear), Number(safeMonth)), Math.max(1, dateParts.day)).toString().padStart(2, "0");
+    const taskData = { ...form, startTime: safeStart, endTime: safeEnd, date: `${safeYear}-${safeMonth}-${safeDay}`, title: form.category, type: activeTab };
     const conflicting = detectOverlap(tasks, taskData, editingId || undefined);
     if (conflicting) {
       setOverlap(conflicting);
@@ -130,6 +203,8 @@ export default function Schedule() {
           setTasks((prev) => [...prev, newTask]);
         }
         setShowForm(false);
+        setActiveField(null);
+        setFreshInput(false);
       } catch {
         toast.error("Task save failed");
       }
@@ -235,19 +310,27 @@ export default function Schedule() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 bg-foreground/30 backdrop-blur-sm flex items-end justify-center"
-            onClick={() => setShowForm(false)}
+            onClick={() => {
+              setShowForm(false);
+              setActiveField(null);
+            }}
           >
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 25 }}
-              className="bg-card w-full max-w-lg rounded-t-3xl p-4 max-h-[85vh] overflow-y-auto"
+              className="bg-card w-full max-w-lg rounded-t-3xl p-4 max-h-[92vh] overflow-hidden flex flex-col"
               onClick={(e) => e.stopPropagation()}
+              onClickCapture={(e) => {
+                const target = e.target as HTMLElement;
+                if (target.closest(".keypad-input") || target.closest(".custom-keypad")) return;
+                setActiveField(null);
+              }}
             >
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg font-heading font-bold">{editingId ? "Edit" : "New"} Task</h2>
-                <button onClick={() => setShowForm(false)} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
+                <button type="button" onClick={() => { setShowForm(false); setActiveField(null); }} className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -262,52 +345,48 @@ export default function Schedule() {
                 </div>
               )}
 
-              <div className="space-y-4">
+              <div className={`space-y-4 overflow-y-auto pr-1 ${keyboardEnabled && activeField ? "pb-36" : "pb-2"}`}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Start</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <select
+                      <input
+                        type="text"
+                        readOnly
                         value={startParts.hour}
-                        onChange={(e) => setForm((f) => ({ ...f, startTime: `${e.target.value}:${startParts.minute}` }))}
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {HOURS.map((h) => (
-                          <option key={h} value={h}>{h}h</option>
-                        ))}
-                      </select>
-                      <select
+                        onFocus={() => activateField("startHour")}
+                        onClick={() => activateField("startHour")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
+                      <input
+                        type="text"
+                        readOnly
                         value={startParts.minute}
-                        onChange={(e) => setForm((f) => ({ ...f, startTime: `${startParts.hour}:${e.target.value}` }))}
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {MINUTES.map((m) => (
-                          <option key={m} value={m}>{m}m</option>
-                        ))}
-                      </select>
+                        onFocus={() => activateField("startMinute")}
+                        onClick={() => activateField("startMinute")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
                     </div>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">End</label>
                     <div className="grid grid-cols-2 gap-2">
-                      <select
+                      <input
+                        type="text"
+                        readOnly
                         value={endParts.hour}
-                        onChange={(e) => setForm((f) => ({ ...f, endTime: `${e.target.value}:${endParts.minute}` }))}
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {HOURS.map((h) => (
-                          <option key={h} value={h}>{h}h</option>
-                        ))}
-                      </select>
-                      <select
+                        onFocus={() => activateField("endHour")}
+                        onClick={() => activateField("endHour")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
+                      <input
+                        type="text"
+                        readOnly
                         value={endParts.minute}
-                        onChange={(e) => setForm((f) => ({ ...f, endTime: `${endParts.hour}:${e.target.value}` }))}
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {MINUTES.map((m) => (
-                          <option key={m} value={m}>{m}m</option>
-                        ))}
-                      </select>
+                        onFocus={() => activateField("endMinute")}
+                        onClick={() => activateField("endMinute")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
                     </div>
                   </div>
                 </div>
@@ -316,64 +395,30 @@ export default function Schedule() {
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Date</label>
                     <div className="grid grid-cols-3 gap-2">
-                      <select
-                        value={dateParts.day}
-                        onChange={(e) =>
-                          setForm((f) => {
-                            const current = parseDate(f.date);
-                            const day = Number(e.target.value);
-                            return {
-                              ...f,
-                              date: `${current.year.toString().padStart(4, "0")}-${current.month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`,
-                            };
-                          })
-                        }
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {dateDayOptions.map((d) => (
-                          <option key={d} value={d}>{d}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={dateParts.month}
-                        onChange={(e) =>
-                          setForm((f) => {
-                            const current = parseDate(f.date);
-                            const month = Number(e.target.value);
-                            const maxDay = daysInMonth(current.year, month);
-                            const safeDay = Math.min(current.day, maxDay);
-                            return {
-                              ...f,
-                              date: `${current.year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${safeDay.toString().padStart(2, "0")}`,
-                            };
-                          })
-                        }
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {MONTHS.map((m, i) => (
-                          <option key={m} value={i + 1}>{m}</option>
-                        ))}
-                      </select>
-                      <select
-                        value={dateParts.year}
-                        onChange={(e) =>
-                          setForm((f) => {
-                            const current = parseDate(f.date);
-                            const year = Number(e.target.value);
-                            const maxDay = daysInMonth(year, current.month);
-                            const safeDay = Math.min(current.day, maxDay);
-                            return {
-                              ...f,
-                              date: `${year.toString().padStart(4, "0")}-${current.month.toString().padStart(2, "0")}-${safeDay.toString().padStart(2, "0")}`,
-                            };
-                          })
-                        }
-                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                      >
-                        {YEAR_OPTIONS.map((y) => (
-                          <option key={y} value={y}>{y}</option>
-                        ))}
-                      </select>
+                      <input
+                        type="text"
+                        readOnly
+                        value={dateParts.day.toString().padStart(2, "0")}
+                        onFocus={() => activateField("day")}
+                        onClick={() => activateField("day")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
+                      <input
+                        type="text"
+                        readOnly
+                        value={dateParts.month.toString().padStart(2, "0")}
+                        onFocus={() => activateField("month")}
+                        onClick={() => activateField("month")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
+                      <input
+                        type="text"
+                        readOnly
+                        value={dateParts.year.toString()}
+                        onFocus={() => activateField("year")}
+                        onClick={() => activateField("year")}
+                        className="keypad-input w-full h-11 px-3 rounded-xl bg-white text-black text-base font-bold border border-border focus:ring-2 focus:ring-primary outline-none"
+                      />
                     </div>
                   </div>
                 )}
@@ -384,6 +429,7 @@ export default function Schedule() {
                     <div className="flex gap-1.5">
                       {DAYS.map((d, i) => (
                         <button
+                          type="button"
                           key={d}
                           onClick={() => setForm((f) => ({ ...f, dayOfWeek: i }))}
                           className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${form.dayOfWeek === i ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
@@ -401,6 +447,7 @@ export default function Schedule() {
                   <div className="flex gap-2">
                     {PRIORITIES.map((p) => (
                       <button
+                        type="button"
                         key={p}
                         onClick={() => setForm((f) => ({ ...f, priority: p }))}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${form.priority === p ? priorityColor(p) + " ring-2 ring-offset-1 ring-current" : "bg-muted text-muted-foreground"
@@ -417,6 +464,7 @@ export default function Schedule() {
                   <div className="flex gap-2">
                     {CATEGORIES.map((c) => (
                       <button
+                        type="button"
                         key={c}
                         onClick={() => setForm((f) => ({ ...f, category: c }))}
                         className={`flex-1 py-2 rounded-xl text-xs font-medium capitalize transition-all ${form.category === c ? "bg-primary/10 text-primary ring-2 ring-primary/30" : "bg-muted text-muted-foreground"
@@ -428,7 +476,56 @@ export default function Schedule() {
                   </div>
                 </div>
 
-                <Button onClick={handleSave} className="w-full rounded-xl gradient-primary text-primary-foreground h-12 text-base font-semibold">
+                {keyboardEnabled && activeField && (
+                  <div className="custom-keypad fixed bottom-3 left-1/2 -translate-x-1/2 w-[min(calc(100%-1.5rem),32rem)] rounded-2xl border border-border bg-muted p-2 shadow-xl z-[60]">
+                    <div className="grid grid-cols-3 gap-2">
+                      {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                        <button
+                          type="button"
+                          key={n}
+                          onClick={() => pressDigit(String(n))}
+                          className="h-10 rounded-lg bg-card text-foreground font-semibold hover:bg-background"
+                        >
+                          {n}
+                        </button>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={pressBackspace}
+                        className="h-10 rounded-lg bg-card text-foreground font-semibold hover:bg-background"
+                      >
+                        Back
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => pressDigit("0")}
+                        className="h-10 rounded-lg bg-card text-foreground font-semibold hover:bg-background"
+                      >
+                        0
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setActiveField(null)}
+                        className="h-10 rounded-lg bg-card text-foreground font-semibold hover:bg-background"
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setKeyboardEnabled((prev) => !prev);
+                    setActiveField(null);
+                  }}
+                  className="w-full h-10 rounded-xl bg-muted text-foreground text-sm font-medium"
+                >
+                  {keyboardEnabled ? "Disable Keyboard" : "Enable Keyboard"}
+                </button>
+
+                <Button onClick={handleSave} className="w-full rounded-xl gradient-primary text-primary-foreground h-11 text-base font-semibold">
                   {editingId ? "Update" : "Create"} Task
                 </Button>
               </div>
