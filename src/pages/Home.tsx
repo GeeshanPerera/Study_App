@@ -14,20 +14,20 @@ export default function Home() {
   const { stats } = useAppStore();
 
   return (
-    <div className="min-h-screen bg-background p-4 max-w-lg mx-auto">
-      <motion.div initial="hidden" animate="visible" className="space-y-4">
+    <div className="h-screen bg-background w-full">
+      <motion.div initial="hidden" animate="visible" className="h-full flex flex-col">
         {/* Header */}
-        <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between pt-2">
+        <motion.div custom={0} variants={fadeUp} className="flex items-center justify-between p-4">
           <div>
             <h1 className="text-2xl font-heading font-bold text-foreground">Focus Assistance</h1>
           </div>
         </motion.div>
 
         {/* Main Actions */}
-        <motion.div custom={1} variants={fadeUp} className="grid grid-cols-2 gap-3">
+        <motion.div custom={1} variants={fadeUp} className="grid grid-cols-2 gap-4 flex-1 min-h-0 p-4 pt-0">
           <Button
             onClick={() => navigate("/study")}
-            className="h-28 rounded-2xl gradient-primary text-primary-foreground flex flex-col gap-2 text-lg font-heading font-semibold shadow-lg hover:shadow-xl transition-all"
+            className="h-full w-full rounded-2xl gradient-primary text-primary-foreground flex flex-col items-center justify-center gap-3 text-2xl font-heading font-semibold transition-all"
           >
             <Play className="w-8 h-8" />
             Start Study
@@ -35,7 +35,7 @@ export default function Home() {
           <Button
             onClick={() => navigate("/schedule")}
             variant="outline"
-            className="h-28 rounded-2xl flex flex-col gap-2 text-lg font-heading font-semibold bg-card hover:bg-muted transition-all"
+            className="h-full w-full rounded-2xl flex flex-col items-center justify-center gap-3 text-2xl font-heading font-semibold bg-card hover:bg-muted transition-all"
           >
             <Calendar className="w-8 h-8 text-accent" />
             Schedule

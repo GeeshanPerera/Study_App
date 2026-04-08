@@ -6,9 +6,32 @@ import { Button } from "@/components/ui/button";
 import { useAppStore, type Task, type TaskPriority, type TaskCategory, type TaskRepeat } from "@/lib/store";
 
 const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const CATEGORIES: TaskCategory[] = ["study", "work", "personal"];
 const PRIORITIES: TaskPriority[] = ["high", "medium", "low"];
 const TABS = ["custom", "weekly", "everyday"] as const;
+const HOURS = Array.from({ length: 24 }, (_, i) => i.toString().padStart(2, "0"));
+const MINUTES = Array.from({ length: 60 }, (_, i) => i.toString().padStart(2, "0"));
+const YEAR_OPTIONS = Array.from({ length: 11 }, (_, i) => new Date().getFullYear() - 2 + i);
+
+function daysInMonth(year: number, month: number) {
+  return new Date(year, month, 0).getDate();
+}
+
+function parseTime(value: string) {
+  const [h = "09", m = "00"] = value.split(":");
+  return { hour: h, minute: m };
+}
+
+function parseDate(value: string) {
+  const [y, m, d] = value.split("-").map(Number);
+  const now = new Date();
+  return {
+    year: Number.isFinite(y) ? y : now.getFullYear(),
+    month: Number.isFinite(m) ? m : now.getMonth() + 1,
+    day: Number.isFinite(d) ? d : now.getDate(),
+  };
+}
 
 function detectOverlap(tasks: Task[], newTask: Partial<Task>, excludeId?: string): Task | undefined {
   return tasks.find(
@@ -36,6 +59,10 @@ export default function Schedule() {
     repeat: "none" as TaskRepeat,
   });
   const [overlap, setOverlap] = useState<Task | null>(null);
+  const startParts = parseTime(form.startTime);
+  const endParts = parseTime(form.endTime);
+  const dateParts = parseDate(form.date);
+  const dateDayOptions = Array.from({ length: daysInMonth(dateParts.year, dateParts.month) }, (_, i) => i + 1);
 
   const filteredTasks = tasks.filter((t) => t.type === activeTab);
 
@@ -190,33 +217,115 @@ export default function Schedule() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Start</label>
-                    <input
-                      type="time"
-                      value={form.startTime}
-                      onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={startParts.hour}
+                        onChange={(e) => setForm((f) => ({ ...f, startTime: `${e.target.value}:${startParts.minute}` }))}
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {HOURS.map((h) => (
+                          <option key={h} value={h}>{h}h</option>
+                        ))}
+                      </select>
+                      <select
+                        value={startParts.minute}
+                        onChange={(e) => setForm((f) => ({ ...f, startTime: `${startParts.hour}:${e.target.value}` }))}
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {MINUTES.map((m) => (
+                          <option key={m} value={m}>{m}m</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">End</label>
-                    <input
-                      type="time"
-                      value={form.endTime}
-                      onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <select
+                        value={endParts.hour}
+                        onChange={(e) => setForm((f) => ({ ...f, endTime: `${e.target.value}:${endParts.minute}` }))}
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {HOURS.map((h) => (
+                          <option key={h} value={h}>{h}h</option>
+                        ))}
+                      </select>
+                      <select
+                        value={endParts.minute}
+                        onChange={(e) => setForm((f) => ({ ...f, endTime: `${endParts.hour}:${e.target.value}` }))}
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {MINUTES.map((m) => (
+                          <option key={m} value={m}>{m}m</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 {activeTab === "custom" && (
                   <div>
                     <label className="text-xs text-muted-foreground mb-1 block">Date</label>
-                    <input
-                      type="date"
-                      value={form.date}
-                      onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                      className="w-full px-3 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
-                    />
+                    <div className="grid grid-cols-3 gap-2">
+                      <select
+                        value={dateParts.day}
+                        onChange={(e) =>
+                          setForm((f) => {
+                            const current = parseDate(f.date);
+                            const day = Number(e.target.value);
+                            return {
+                              ...f,
+                              date: `${current.year.toString().padStart(4, "0")}-${current.month.toString().padStart(2, "0")}-${day.toString().padStart(2, "0")}`,
+                            };
+                          })
+                        }
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {dateDayOptions.map((d) => (
+                          <option key={d} value={d}>{d}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={dateParts.month}
+                        onChange={(e) =>
+                          setForm((f) => {
+                            const current = parseDate(f.date);
+                            const month = Number(e.target.value);
+                            const maxDay = daysInMonth(current.year, month);
+                            const safeDay = Math.min(current.day, maxDay);
+                            return {
+                              ...f,
+                              date: `${current.year.toString().padStart(4, "0")}-${month.toString().padStart(2, "0")}-${safeDay.toString().padStart(2, "0")}`,
+                            };
+                          })
+                        }
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {MONTHS.map((m, i) => (
+                          <option key={m} value={i + 1}>{m}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={dateParts.year}
+                        onChange={(e) =>
+                          setForm((f) => {
+                            const current = parseDate(f.date);
+                            const year = Number(e.target.value);
+                            const maxDay = daysInMonth(year, current.month);
+                            const safeDay = Math.min(current.day, maxDay);
+                            return {
+                              ...f,
+                              date: `${year.toString().padStart(4, "0")}-${current.month.toString().padStart(2, "0")}-${safeDay.toString().padStart(2, "0")}`,
+                            };
+                          })
+                        }
+                        className="w-full px-2 py-2.5 rounded-xl bg-muted text-sm focus:ring-2 focus:ring-primary outline-none"
+                      >
+                        {YEAR_OPTIONS.map((y) => (
+                          <option key={y} value={y}>{y}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 )}
 
